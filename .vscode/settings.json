@@ -24,8 +24,5 @@
         "Git Bash": {
             "source": "Git Bash"
         }
-    },
-    "files.associations": {
-        "xstring": "cpp"
     }
 }

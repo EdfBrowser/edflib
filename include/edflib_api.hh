@@ -16,14 +16,31 @@ extern "C" {
 
 typedef void* EDFHANDLE;
 
-struct EDFHandle_C {
-  char patient_id[80];
-  char recording_id[80];
+struct SignalInfo_C {
+  char label[17];
+  char physical_dim[9];
+  double physical_min;
+  double physical_max;
+  int digital_min;
+  int digital_max;
+  char prefiltering[81];
+  unsigned int samples;
+};
+
+struct Header_C {
+  char patient_id[81];
+  char recording_id[81];
+  char start_date[9];
+  char start_time[9];
+  unsigned int data_record_count;
+  double record_duration;
+  unsigned int signal_count;
+  SignalInfo_C signals[4096];
 };
 
 EDF_API EDFHANDLE edf_open(const char* path);
 EDF_API int edf_close(EDFHANDLE handle);
-EDF_API int edf_read_header(EDFHANDLE handle, EDFHandle_C* header);
+EDF_API int edf_read_header(EDFHANDLE handle, Header_C* header);
 
 #ifdef __cplusplus
 }

@@ -9,6 +9,19 @@ using str = std::string;
 using ushort = unsigned short;
 using uint = unsigned int;
 
+struct SignalInfo {
+  str label;
+  str transducer;
+  str physical_dim;
+  double physical_min;
+  double physical_max;
+  int digital_min;
+  int digital_max;
+  str prefiltering;
+  uint samples;
+  str reserved;
+};
+
 struct Header {
   str version;
   str patient_id;
@@ -21,19 +34,6 @@ struct Header {
   double record_duration;
   ushort signal_count;
 
-  struct SignalInfo {
-    str label;
-    str transducer;
-    str physical_dim;
-    double physical_min;
-    double physical_max;
-    short digital_min;
-    short digital_max;
-    str prefiltering;
-    uint samples_per_count;
-    str reserved;
-  };
-
   std::vector<SignalInfo> signals;
 };
 
@@ -44,9 +44,9 @@ class File {
 
   const Header& header() const noexcept { return header_; }
 
-  // std::vector<short> read_signal_data(ushort signal_index,
-  //                                    ushort start_record = 0,
-  //                                    ushort record_count = 0);
+  //   std::vector<short> read_signal_data(ushort signal_index,
+  //                                       ushort start_record = 0,
+  //                                       ushort record_count = 0);
 
  private:
   struct FieldDescriptor {
@@ -55,12 +55,20 @@ class File {
     std::function<void(const char*, Header&)> parser;
   };
 
+  struct SignalDescriptor {
+    uint offset;
+    uint length;
+    std::function<void(const char*, SignalInfo&)> parser;
+  };
+
   void parse_header();
-  void register_header_fields();
   void parse_signal_headers();
 
   std::ifstream file_;
   Header header_;
-  std::vector<FieldDescriptor> header_descriptors_;
+
+  static void register_fields();
+  static std::vector<FieldDescriptor> header_descriptors_;
+  static std::vector<SignalDescriptor> signal_descriptors_;
 };
 };  // namespace edf
