@@ -1,5 +1,0 @@
-# ninja log v5
-2	398	7620340373991104	CMakeFiles/edflib.dir/src/edflib_api.cc.obj	2157512426799d52
-3	331	7620330840199635	CMakeFiles/edflib.dir/src/edflib.cc.obj	f49c7213e4dbd2f9
-399	1919	7620340373991104	edflib.dll	4e82a79a4cd6c501
-399	1919	7620340373991104	edflib.lib	4e82a79a4cd6c501
