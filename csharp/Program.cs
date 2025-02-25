@@ -10,7 +10,15 @@ public class Program
             //     System.Console.WriteLine(header.Signals[i].Samples);
             // }
 
-            edf.ReadSignalData(0, 0, 1);
+            var sig = header.Signals[0];
+            double[] buf = new double[sig.Samples];
+            var signalDataInfo = new EDFReader.SignalDataInfo(sig, 0, 0, 1);
+            edf.ReadPhysicalData(buf, signalDataInfo);
+
+            foreach (double val in buf)
+            {
+                System.Console.WriteLine(val);
+            }
         }
 
         // System.Console.ReadKey();

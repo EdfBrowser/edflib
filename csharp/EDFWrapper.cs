@@ -67,6 +67,53 @@ public sealed class EDFReader : IDisposable
     private bool _disposed = false;
 
 
+    public readonly struct SignalDataInfo
+    {
+        private readonly double _pMin;
+        private readonly double _pMax;
+        private readonly double _dMin;
+        private readonly double _dMax;
+
+        private readonly uint _index;
+        private readonly uint _startRecord;
+        private readonly uint _readCount;
+
+        private readonly double _unit;
+        private readonly double _offset;
+
+        public SignalDataInfo(double pMin, double pMax, double dMin, double dMax,
+            uint index = 0, uint startRecord = 0, uint readCount = 1)
+        {
+            _pMin = pMin;
+            _pMax = pMax;
+            _dMin = dMin;
+            _dMax = dMax;
+            _index = index;
+            _startRecord = startRecord;
+            _readCount = readCount;
+
+            _unit = (_pMax - _pMin) / (_dMax - _dMin);
+            _offset = (_pMax / _unit - _dMax);
+        }
+
+        public SignalDataInfo(SignalInfo info, uint index = 0, uint startRecord = 0, uint readCount = 1)
+        : this(info.PhysicalMin, info.PhysicalMax, info.DigitalMin, info.DigitalMax,
+                index, startRecord, readCount)
+        { }
+
+        public double PMin => _pMin;
+        public double PMax => _pMax;
+        public double DMin => _dMin;
+        public double DMax => _dMax;
+
+        public uint Index => _index;
+        public uint StartRecord => _startRecord;
+        public uint RecordCount => _readCount;
+
+        public double Unit => _unit;
+        public double Offset => _offset;
+    }
+
     public EDFReader(string filepath)
     {
         _handle = EdfOpen(filepath);
@@ -93,35 +140,50 @@ public sealed class EDFReader : IDisposable
         }
     }
 
-
-    public void ReadSignalData(uint signalIndex, uint startRecord = 0, uint recordCount = 0)
+    public void ReadPhysicalData(double[] buf, SignalDataInfo dataInfo)
     {
-        byte[] buf = new byte[500 * 2 * 1];
-        IntPtr ptr = Marshal.AllocHGlobal(buf.Length);
+        ReadDigitalData(buf, dataInfo);
+
+        for (int i = 0; i < buf.Length; i++)
+        {
+            buf[i] = dataInfo.Unit * (buf[i] + dataInfo.Offset);
+            // buf[i] = (raw - dataInfo.DMin) * dataInfo.Unit + dataInfo.PMin;
+        }
+    }
+
+
+    public void ReadDigitalData(double[] buf, SignalDataInfo dataInfo)
+    {
+        if (buf == null) throw new ArgumentNullException(nameof(buf));
+
+        // sizeof(short) == 2;
+        IntPtr ptr = Marshal.AllocHGlobal(buf.Length * 2);
 
         try
         {
-            int result = EdfReadSignalData(_handle, ptr, signalIndex, startRecord, recordCount);
+            int result = EdfReadSignalData(_handle, ptr, dataInfo.Index, dataInfo.StartRecord, dataInfo.RecordCount);
             if (result != 0)
                 throw new EDFException($"Read signal data error: {result}");
 
-            Marshal.Copy(ptr, buf, 0, buf.Length);
+            // 补码
+            // foreach (byte b in buf)
+            // {
+            //     System.Console.WriteLine(Convert.ToString(b, 2));
+            // }
 
-            var sig = ReadHeader().Signals[0];
-
-            double[] val = new double[buf.Length / 2];
-            for (int i = 0; i < buf.Length / 2; i++)
+            for (int i = 0; i < buf.Length; i++)
             {
-                short raw = (short)(
-                    (buf[2 * i] & 0xFF) |
-                    (buf[2 * i + 1] & 0xFF << 8));
+                byte one = Marshal.ReadByte(ptr, 2 * i);
+                byte two = Marshal.ReadByte(ptr, 2 * i + 1);
 
-                double scale = (sig.PhysicalMax - sig.PhysicalMin) / (sig.DigitalMax - sig.DigitalMin);
-                double offset = sig.PhysicalMax / scale - sig.DigitalMax;
-                val[i] = scale * (raw + offset);
+                // 小端
+                short raw = (short)((one) | (two << 8));
+                // raw = Marshal.ReadInt16(ptr, 2 * i);
+
+                buf[i] = raw;
+                //buf[i] = dataInfo.Unit * (raw + dataInfo.Offset);
+                // buf[i] = (raw - dataInfo.DMin) * dataInfo.Unit + dataInfo.PMin;
             }
-
-            System.Console.WriteLine(val[0]);
         }
         finally
         {
