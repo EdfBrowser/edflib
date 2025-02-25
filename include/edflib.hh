@@ -44,9 +44,8 @@ class File {
 
   const Header& header() const noexcept { return header_; }
 
-  //   std::vector<short> read_signal_data(ushort signal_index,
-  //                                       ushort start_record = 0,
-  //                                       ushort record_count = 0);
+  int read_signal_data(char* const buf, uint signal_index,
+                       uint start_record = 0, uint record_count = 0);
 
  private:
   struct FieldDescriptor {

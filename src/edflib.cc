@@ -1,5 +1,7 @@
 #include "edflib.hh"
 
+#include <numeric>
+
 using namespace edf;
 
 std::vector<File::FieldDescriptor> File::header_descriptors_;
@@ -110,4 +112,49 @@ void File::parse_signal_headers() {
   }
 
   delete buf;
+}
+
+int File::read_signal_data(char* const buf, uint signal_index,
+                           uint start_record, uint record_count) {
+  ushort ns = header_.signal_count;
+
+  if (signal_index >= ns) return -1;
+  if (buf == nullptr) return -1;
+
+  uint total_records = header_.data_record_count;
+  // 参数校验
+  start_record = std::min(start_record, total_records);
+  if (record_count == 0U || start_record + record_count > total_records)
+    record_count = total_records - start_record;
+
+  //   // 计算偏移量
+  uint record_size =
+      std::accumulate(header_.signals.begin(), header_.signals.end(), 0U,
+                      [](uint sum, const SignalInfo& sig) {
+                        return sum + sig.samples * sizeof(short);
+                      });
+
+  // 定位到起始记录
+  uint start_pos = 256U + 256U * ns + (start_record * record_size);
+
+  // 计算信号在记录中内的偏移
+  for (int i = 0; i < signal_index; i++) {
+    start_pos += header_.signals[i].samples * sizeof(short);
+  }
+
+  file_.seekg(start_pos);
+
+  //   跳过不需要读的字节
+  const uint bytes_per_record =
+      header_.signals[signal_index].samples * sizeof(short);
+  const uint stride = record_size - bytes_per_record;
+
+  for (int rec = 0; rec < record_count; rec++) {
+    file_.read(buf + rec * header_.signals[signal_index].samples,
+               bytes_per_record);
+
+    file_.seekg(stride, std::ios::cur);
+  }
+
+  return 0;
 }

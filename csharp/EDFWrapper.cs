@@ -55,6 +55,14 @@ public sealed class EDFReader : IDisposable
     [DllImport("../edflib", EntryPoint = "edf_read_header", CallingConvention = CallingConvention.Cdecl)]
     private static extern int EdfReadHeader(IntPtr handle, IntPtr ptr);
 
+    [DllImport("../edflib", EntryPoint = "edf_read_signal_data", CallingConvention = CallingConvention.Cdecl)]
+    private static extern int EdfReadSignalData(
+                                                IntPtr hadnle,
+                                                IntPtr ptr,
+                                                uint signalIndex,
+                                                uint startRecord = 0,
+                                                uint recordCount = 0);
+
     private IntPtr _handle;
     private bool _disposed = false;
 
@@ -77,6 +85,43 @@ public sealed class EDFReader : IDisposable
                 throw new EDFException($"Header read error: {result}");
 
             return Marshal.PtrToStructure<EDFHeader>(ptr);
+        }
+        finally
+        {
+            if (ptr != IntPtr.Zero)
+                Marshal.FreeHGlobal(ptr);
+        }
+    }
+
+
+    public void ReadSignalData(uint signalIndex, uint startRecord = 0, uint recordCount = 0)
+    {
+        byte[] buf = new byte[500 * 2 * 1];
+        IntPtr ptr = Marshal.AllocHGlobal(buf.Length);
+
+        try
+        {
+            int result = EdfReadSignalData(_handle, ptr, signalIndex, startRecord, recordCount);
+            if (result != 0)
+                throw new EDFException($"Read signal data error: {result}");
+
+            Marshal.Copy(ptr, buf, 0, buf.Length);
+
+            var sig = ReadHeader().Signals[0];
+
+            double[] val = new double[buf.Length / 2];
+            for (int i = 0; i < buf.Length / 2; i++)
+            {
+                short raw = (short)(
+                    (buf[2 * i] & 0xFF) |
+                    (buf[2 * i + 1] & 0xFF << 8));
+
+                double scale = (sig.PhysicalMax - sig.PhysicalMin) / (sig.DigitalMax - sig.DigitalMin);
+                double offset = sig.PhysicalMax / scale - sig.DigitalMax;
+                val[i] = scale * (raw + offset);
+            }
+
+            System.Console.WriteLine(val[0]);
         }
         finally
         {

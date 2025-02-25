@@ -60,3 +60,12 @@ int edf_read_header(EDFHANDLE handle, Header_C* header) {
 
   return 0;
 }
+
+int edf_read_signal_data(EDFHANDLE handle, char* const buf,
+                         unsigned int signal_index, unsigned int start_record,
+                         unsigned int record_count) {
+  if (!handle) return -1;
+  auto* file = reinterpret_cast<File*>(handle);
+
+  return file->read_signal_data(buf, signal_index, start_record, record_count);
+}
