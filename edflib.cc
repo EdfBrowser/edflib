@@ -1,4 +1,4 @@
-#include "edflib.hh"
+#include "pch.h"
 
 #include <numeric>
 
@@ -102,7 +102,7 @@ void File::parse_signal_headers() {
   header_.signals.resize(ns);
 
   char* buf = new char[256 * ns];
-  file_.read(buf, 256 * ns);
+  file_.read(buf, static_cast<std::streamsize>(256) * ns);
 
   for (const SignalDescriptor& desc : signal_descriptors_) {
     const char* buf_offset = buf + desc.offset * ns;
@@ -111,7 +111,7 @@ void File::parse_signal_headers() {
     }
   }
 
-  delete buf;
+  delete[] buf;
 }
 
 int File::read_signal_data(char* const buf, uint signal_index,
@@ -131,14 +131,14 @@ int File::read_signal_data(char* const buf, uint signal_index,
   uint record_size =
       std::accumulate(header_.signals.begin(), header_.signals.end(), 0U,
                       [](uint sum, const SignalInfo& sig) {
-                        return sum + sig.samples * sizeof(short);
+                        return static_cast<uint>(sum + sig.samples * sizeof(short));
                       });
 
   // 定位到起始记录
   uint start_pos = 256U + 256U * ns + (start_record * record_size);
 
   // 计算信号在记录中内的偏移
-  for (int i = 0; i < signal_index; i++) {
+  for (uint i = 0; i < signal_index; i++) {
     start_pos += header_.signals[i].samples * sizeof(short);
   }
 
@@ -149,7 +149,7 @@ int File::read_signal_data(char* const buf, uint signal_index,
       header_.signals[signal_index].samples * sizeof(short);
   const uint stride = record_size - bytes_per_record;
 
-  for (int rec = 0; rec < record_count; rec++) {
+  for (uint rec = 0; rec < record_count; rec++) {
     file_.read(buf + rec * header_.signals[signal_index].samples,
                bytes_per_record);
 
