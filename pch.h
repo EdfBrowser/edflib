@@ -10,6 +10,6 @@
 // add headers that you want to pre-compile here
 #include "edflib.hh"
 #include "edflib_api.hh"
-
+#include <numeric>
 
 #endif //PCH_H

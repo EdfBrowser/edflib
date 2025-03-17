@@ -1,6 +1,5 @@
-#include "pch.h"
 
-#include <numeric>
+#include "pch.h"
 
 using namespace edf;
 
@@ -95,6 +94,7 @@ void File::parse_header() {
   parse_signal_headers();
 }
 
+// TODO: 添加读取越界判断
 void File::parse_signal_headers() {
   file_.seekg(256);
 
@@ -127,12 +127,12 @@ int File::read_signal_data(char* const buf, uint signal_index,
   if (record_count == 0U || start_record + record_count > total_records)
     record_count = total_records - start_record;
 
-  //   // 计算偏移量
-  uint record_size =
-      std::accumulate(header_.signals.begin(), header_.signals.end(), 0U,
-                      [](uint sum, const SignalInfo& sig) {
-                        return static_cast<uint>(sum + sig.samples * sizeof(short));
-                      });
+  // 计算偏移量
+  uint record_size = std::accumulate(
+      header_.signals.begin(), header_.signals.end(), 0U,
+      [](uint sum, const SignalInfo& sig) {
+        return static_cast<uint>(sum + sig.samples * sizeof(short));
+      });
 
   // 定位到起始记录
   uint start_pos = 256U + 256U * ns + (start_record * record_size);
@@ -150,8 +150,7 @@ int File::read_signal_data(char* const buf, uint signal_index,
   const uint stride = record_size - bytes_per_record;
 
   for (uint rec = 0; rec < record_count; rec++) {
-    file_.read(buf + rec * header_.signals[signal_index].samples,
-               bytes_per_record);
+    file_.read(buf + rec * bytes_per_record, bytes_per_record);
 
     file_.seekg(stride, std::ios::cur);
   }
