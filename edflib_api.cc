@@ -12,7 +12,7 @@ int edf_close(EDFHANDLE handle) {
   return 0;
 }
 
-int edf_read_header(EDFHANDLE handle, Header_C* header) {
+int edf_read_header_info(EDFHANDLE handle, Header_C* header) {
   if (!handle || !header) return -1;
   auto* file = reinterpret_cast<File*>(handle);
 
@@ -36,21 +36,35 @@ int edf_read_header(EDFHANDLE handle, Header_C* header) {
   header->record_duration = hdr.record_duration;
   header->signal_count = hdr.signal_count;
 
-  for (int i = 0; i < hdr.signal_count; i++) {
-    std::strcpy(header->signals[i].label, hdr.signals[i].label.c_str());
-    std::strcpy(header->signals[i].physical_dim,
-                hdr.signals[i].physical_dim.c_str());
-    header->signals[i].physical_min = hdr.signals[i].physical_min;
-    header->signals[i].physical_max = hdr.signals[i].physical_max;
-    header->signals[i].digital_min = hdr.signals[i].digital_min;
-    header->signals[i].digital_max = hdr.signals[i].digital_max;
-    std::strcpy(header->signals[i].prefiltering,
-                hdr.signals[i].prefiltering.c_str());
-    header->signals[i].samples = hdr.signals[i].samples;
+#pragma warning(pop)
 
-    header->signals[i].label[16] = 0;
-    header->signals[i].physical_dim[8] = 0;
-    header->signals[i].prefiltering[80] = 0;
+  return 0;
+}
+
+int edf_read_signal_info(EDFHANDLE handle, SignalInfo_C* signal) {
+  if (!handle || !signal) return -1;
+  auto* file = reinterpret_cast<File*>(handle);
+
+  const auto& hdr = file->header();
+
+#pragma warning(push)
+#pragma warning(disable : 4996)
+
+  for (int i = 0; i < hdr.signal_count; i++) {
+    std::strcpy(signal[i].label, hdr.signals[i].label.c_str());
+    std::strcpy(signal[i].physical_dim,
+                hdr.signals[i].physical_dim.c_str());
+    signal[i].physical_min = hdr.signals[i].physical_min;
+    signal[i].physical_max = hdr.signals[i].physical_max;
+    signal[i].digital_min = hdr.signals[i].digital_min;
+    signal[i].digital_max = hdr.signals[i].digital_max;
+    std::strcpy(signal[i].prefiltering,
+                hdr.signals[i].prefiltering.c_str());
+    signal[i].samples = hdr.signals[i].samples;
+
+    signal[i].label[16] = 0;
+    signal[i].physical_dim[8] = 0;
+    signal[i].prefiltering[80] = 0;
   }
 
 #pragma warning(pop)

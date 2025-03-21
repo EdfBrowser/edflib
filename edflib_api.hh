@@ -35,12 +35,12 @@ struct Header_C {
   unsigned int data_record_count;
   double record_duration;
   unsigned int signal_count;
-  SignalInfo_C signals[4096];
 };
 
 EDF_API EDFHANDLE edf_open(const char* path);
 EDF_API int edf_close(EDFHANDLE handle);
-EDF_API int edf_read_header(EDFHANDLE handle, Header_C* header);
+EDF_API int edf_read_header_info(EDFHANDLE handle, Header_C* header);
+EDF_API int edf_read_signal_info(EDFHANDLE handle, SignalInfo_C* signal);
 EDF_API int edf_read_signal_data(EDFHANDLE handle, char* const buf,
                                  unsigned int signal_index,
                                  unsigned int start_record = 0,
